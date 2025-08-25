@@ -158,7 +158,7 @@ function HalfEdgeTopology(elems::AbstractVector{<:AbstractConnectivity}; sort=tr
   n = length(inds)
   for i in eachindex(inds)
     u = inds[i]
-    v = inds[mod1(i + 1, n)]
+    v = inds[mod_inc1(i, n)]
     # insert halfedges u -> v and v -> u
     he = get!(() -> HalfEdge(u, elem), half4pair, (u, v))
     half = get!(() -> HalfEdge(v, nothing), half4pair, (v, u))
@@ -194,11 +194,11 @@ function HalfEdgeTopology(elems::AbstractVector{<:AbstractConnectivity}; sort=tr
 
       # insert half-edges in consistent orientation
       if isreversed[other]
-        step₁ = add1
-        step₂ = add0
+        step₁ = mod_inc1
+        step₂ = mod_inc0
       else
-        step₁ = add0
-        step₂ = add1
+        step₁ = mod_inc0
+        step₂ = mod_inc1
       end
 
       for i in eachindex(oinds)
@@ -232,8 +232,9 @@ function HalfEdgeTopology(elems::AbstractVector{<:AbstractConnectivity}; sort=tr
     n = length(inds)
     for i in eachindex(inds)
       u = inds[i]
-      v = inds[mod1(i + 1, n)]
-      w = inds[mod1(i + 2, n)]
+      i1 = mod_inc1(i, n)
+      v = inds[i1]
+      w = inds[mod_inc1(i1, n)]
 
       # update pointers prev and next
       he = half4pair[(u, v)]
@@ -415,7 +416,7 @@ end
 function anyhalf(half4pair, inds)
   n = length(inds)
   for i in eachindex(inds)
-    uv = (inds[i], inds[mod1(i + 1, n)])
+    uv = (inds[i], inds[mod_inc1(i, n)])
     if haskey(half4pair, uv)
       return true
     end
@@ -427,7 +428,7 @@ end
 function anyhalfclaimed(half4pair, inds)
   n = length(inds)
   for i in eachindex(inds)
-    uv = (inds[i], inds[mod1(i + 1, n)])
+    uv = (inds[i], inds[mod_inc1(i, n)])
     if !isnothing(get(() -> HalfEdge(0, nothing), half4pair, uv).elem)
       return true
     end
@@ -436,8 +437,11 @@ function anyhalfclaimed(half4pair, inds)
 end
 
 # integer addition mod1
-add0(i, n) = i
-add1(i, n) = mod1(i + 1, n)
+mod_inc0(i, n) = i
+function mod_inc1(a, n)
+  a1 = a+1
+  a1 > n ? 1 : a1
+end
 
 collect_ifnot_vec(x) = collect(x)
 collect_ifnot_vec(x::Vector) = x

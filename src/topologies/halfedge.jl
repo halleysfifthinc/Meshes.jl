@@ -340,7 +340,7 @@ function conneccomps(elems::AbstractVector{<:AbstractConnectivity})
   comps = [[firstindex(elems)]]
 
   # initialize list of seen vertices
-  seen = Set{Int}()
+  seen = BitSet()
   for v in indices(first(elems))
     push!(seen, v)
   end

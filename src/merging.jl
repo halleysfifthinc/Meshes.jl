@@ -23,7 +23,7 @@ function Base.merge(m₁::Mesh, m₂::Mesh)
   connec₂ = map(elements(t₂)) do e
     PL = pltype(e)
     c = indices(e)
-    c′ = ntuple(i -> c[i] + offset, length(c))
+    c′ = c .+ offset
     connect(c′, PL)
   end
   connec = [connec₁; connec₂]

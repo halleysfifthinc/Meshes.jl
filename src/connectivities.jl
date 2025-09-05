@@ -2,6 +2,8 @@
 # Licensed under the MIT License. See LICENSE in the project root.
 # ------------------------------------------------------------------
 
+abstract type AbstractConnectivity end
+
 """
     Connectivity{PL,N}
 
@@ -10,7 +12,7 @@ of type `PL`. Indices are taken from a global vector of [`Point`](@ref).
 
 Connectivity objects are constructed with the [`connect`](@ref) function.
 """
-struct Connectivity{PL<:Polytope,N}
+struct Connectivity{PL<:Polytope,N} <: AbstractConnectivity
   indices::NTuple{N,Int}
 
   function Connectivity{PL,N}(indices) where {PL,N}
@@ -22,28 +24,34 @@ struct Connectivity{PL<:Polytope,N}
   end
 end
 
+struct PolyConnectivity <: AbstractConnectivity
+    indices::Vector{Int}
+end
+
 """
     pltype(connectivity)
 
 Return the polytope type that the connectivity represents.
 """
+pltype(c::AbstractConnectivity) = pltype(typeof(c))
 pltype(::Type{Connectivity{PL,N}}) where {PL,N} = PL
-pltype(c::Connectivity) = pltype(typeof(c))
+pltype(::Type{PolyConnectivity}) = PolyArea
 
 """
     paramdim(connectivity)
 
 Return the parametric dimension of the `connectivity`.
 """
+paramdim(c::AbstractConnectivity) = paramdim(typeof(c))
 paramdim(::Type{Connectivity{PL,N}}) where {PL,N} = paramdim(PL)
-paramdim(c::Connectivity) = paramdim(typeof(c))
+paramdim(::Type{PolyConnectivity}) = paramdim(PolyArea)
 
 """
     indices(connectivity)
 
 Return the list of indices of the `connectivity`.
 """
-indices(c::Connectivity) = c.indices
+indices(c::AbstractConnectivity) = c.indices
 
 """
     connect(indices, [PL])
@@ -81,6 +89,9 @@ connect((1,2,3,4)) # Quadrangle
 """
 connect(indices::Tuple, PL::Type{<:Polytope}) = Connectivity{PL,length(indices)}(indices)
 
+connect(indices, ::Type{PolyArea}) = PolyConnectivity(indices)
+connect(indices::Tuple, ::Type{PolyArea}) = PolyConnectivity(collect(indices))
+
 function connect(indices::Tuple, ::Type{Ngon})
   N = length(indices)
   Connectivity{Ngon{N},N}(indices)
@@ -91,6 +102,10 @@ function connect(indices::Tuple)
   N > 2 ? connect(indices, Ngon) : connect(indices, Segment)
 end
 
+function connect(indices::AbstractVector{<:Integer})::Connectivity
+  connect(ntuple(i -> Int(indices[i]), length(indices)), Ngon)
+end
+
 """
     materialize(connec, points)
 
@@ -98,6 +113,11 @@ Materialize a face using the `connec` list and a global vector of `points`.
 """
 materialize(connec::Connectivity{PL,N}, points::AbstractVector{P}) where {PL<:Polytope,N,P<:Point} =
   PL(ntuple(i -> @inbounds(points[connec.indices[i]]), N))
+
+function materialize(connec::PolyConnectivity, points::AbstractVector{P}) where {P<:Point}
+  PolyArea(map(i -> points[i], indices(connec)))
+end
+
 
 function Base.show(io::IO, c::Connectivity{PL}) where {PL}
   name = prettyname(PL)

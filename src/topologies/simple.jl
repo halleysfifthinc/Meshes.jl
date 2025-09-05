@@ -14,7 +14,7 @@ It does *not* support topological relations and is therefore incompatible
 with algorithms that rely on neighborhood search. It is still useful for
 mesh visualization and IO operations.
 """
-struct SimpleTopology{C<:Connectivity} <: Topology
+struct SimpleTopology{C<:AbstractConnectivity} <: Topology
   # input fields
   connec::Vector{C}
 

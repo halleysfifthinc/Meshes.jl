@@ -139,13 +139,13 @@ function HalfEdgeTopology(halves::AbstractVector{Tuple{HalfEdge,HalfEdge}}; nele
   HalfEdgeTopology(halfedges, half4elem, half4vert, edge4pair)
 end
 
-function HalfEdgeTopology(elems::AbstractVector{<:Connectivity}; sort=true)
+function HalfEdgeTopology(elems::AbstractVector{<:AbstractConnectivity}; sort=true)
   assertion(all(e -> paramdim(e) == 2, elems), "invalid element for half-edge topology")
 
   # sort elements to make sure that they
   # are traversed in adjacent-first order
   eleminds = sort ? adjsortperm(elems) : eachindex(elems)
-  adjelems::Vector{Vector{Int}} = map(collect ∘ indices ∘ Base.Fix1(getindex, elems), eleminds)
+  adjelems::Vector{Vector{Int}} = map(collect_ifnot_vec ∘ indices ∘ Base.Fix1(getindex, elems), eleminds)
 
   # start assuming that all elements are
   # oriented consistently (e.g. CCW)
@@ -329,12 +329,12 @@ Base.convert(::Type{HalfEdgeTopology}, t::Topology) = HalfEdgeTopology(collect(e
 # -----------------
 
 # permutation of elements in adjacent-first order
-function adjsortperm(elems::AbstractVector{<:Connectivity})
+function adjsortperm(elems::AbstractVector{<:AbstractConnectivity})
   reduce(vcat, conneccomps(elems))
 end
 
 # connected components from list of elements
-function conneccomps(elems::AbstractVector{<:Connectivity})
+function conneccomps(elems::AbstractVector{<:AbstractConnectivity})
   # initialize list of connected components
   comps = [[firstindex(elems)]]
 
@@ -358,6 +358,8 @@ function conneccomps(elems::AbstractVector{<:Connectivity})
       isadjacent = if elem isa Connectivity{Triangle,3}
         adjelem!(seen, elem)
       elseif elem isa Connectivity{Quadrangle,4}
+        adjelem!(seen, elem)
+      elseif elem isa PolyConnectivity
         adjelem!(seen, elem)
       else
         adjelem!(seen, elem)
@@ -434,6 +436,9 @@ end
 # integer addition mod1
 add0(i, n) = i
 add1(i, n) = mod1(i + 1, n)
+
+collect_ifnot_vec(x) = collect(x)
+collect_ifnot_vec(x::Vector) = x
 
 inconsistentedgeerror(u, v, elem, he) =
   throw(AssertionError("duplicate edge $((u, v)) for element $(elem) is inconsistent with previous edge $he"))

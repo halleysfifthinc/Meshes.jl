@@ -96,7 +96,7 @@ function apply(::Repair{1}, mesh::Mesh)
 
   points = [vertex(mesh, ind) for ind in seen]
 
-  connec = connect.(elems)
+  connec = connect.(elems, pltype.(elements(topo)))
 
   rmesh = SimpleMesh(points, connec)
 

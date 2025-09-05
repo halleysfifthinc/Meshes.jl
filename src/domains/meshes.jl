@@ -200,6 +200,7 @@ Base.extrema(g::Grid) = minimum(g), maximum(g)
 
 function element(g::Grid, ind::Int)
   elem = element(topology(g), ind)
+  # TODO: Fix use of pltype/connecitivity API assumptions
   type = pltype(elem)
   einds = indices(elem)
   cinds = CartesianIndices(vsize(g))

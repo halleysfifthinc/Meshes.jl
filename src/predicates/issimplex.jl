@@ -22,6 +22,5 @@ issimplex(::Type{<:Tetrahedron}) = true
 
 Tells whether or not the `connectivity` is a simplex.
 """
-issimplex(c::Connectivity) = issimplex(typeof(c))
+issimplex(c::AbstractConnectivity) = issimplex(pltype(c))
 
-issimplex(::Type{Connectivity{PL,N}}) where {PL,N} = issimplex(PL)

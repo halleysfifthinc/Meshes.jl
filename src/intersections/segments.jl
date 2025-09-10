@@ -106,8 +106,8 @@ end
 # 5. do not overlap nor intersect (NotIntersecting -> Nothing)
 function intersection(f, seg::Segment, ray::Ray)
   Dim = embeddim(seg)
-  a, b = ray(0), ray(1)
-  c, d = seg(0), seg(1)
+  a = ray.p
+  c, d = vertices(seg)[1], vertices(seg)[2]
 
   # normalize points to gain parameters λ₁, λ₂ corresponding to arc lengths
   l₁ = ustrip(norm(ray.v))
@@ -132,7 +132,7 @@ function intersection(f, seg::Segment, ray::Ray)
       if rd ≥ 0
         return @IT Overlapping seg f # CASE 4
       else
-        return @IT Overlapping Segment(ray(0), c) f # CASE 4
+        return @IT Overlapping Segment(ray.p, c) f # CASE 4
       end
     elseif rc == 0
       if rd > 0
@@ -142,7 +142,7 @@ function intersection(f, seg::Segment, ray::Ray)
       end
     else # rc < 0
       if rd > 0
-        return @IT Overlapping (Segment(ray(0), d)) f # CASE 4
+        return @IT Overlapping (Segment(ray.p, d)) f # CASE 4
       elseif rd == 0
         return @IT CornerTouching a f # CASE 3
       else

@@ -623,6 +623,33 @@ end
   l2 = Line(cart(1, 2, 3), cart(1, 1, 1))
   @test l1 ∩ l2 ≈ l2 ∩ l1 ≈ cart(1, 2, 3)
 
+  p₁ = PolyArea(
+    cart.([(0, 0), (2, 0), (2, 2), (0, 2)]),
+    cart.([(1.5, 0.5), (1.5, 1.5), (0.5, 1.5)])
+    )
+  p₂ = PolyArea(cart.([(0,0), (2,0), (2,2), (1,1), (0,2)]))
+  l₁ = Ray(cart(-0.5,2), vector(1,0))
+  l₂ = Ray(cart(-0.5,1.5), vector(1,0))
+  l₃ = Ray(cart(-0.5,1), vector(1,0))
+  l₄ = Ray(cart(-0.5,0.5), vector(1,0))
+  l₅ = Ray(cart(0,2), vector(3,-2))
+
+  @test intersection(p₁, l₁) |> type === Intersecting # overlapping 1 segment
+  @test p₁ ∩ l₁ == l₁ ∩ p₁ == GeometrySet([Rope(cart.([(0,2), (2,2)]))])
+  @test intersection(p₁, l₂) |> type === Intersecting # crossing 2 segments and overlapping 1
+  @test p₁ ∩ l₂ == l₂ ∩ p₁ == GeometrySet([Rope(cart.([(0,1.5), (0.5,1.5), (1.5,1.5), (prevfloat(2., 2),1.5)]))])
+  @test intersection(p₁, l₃) |> type === Intersecting # crossing a hole
+  @test p₁ ∩ l₃ == l₃ ∩ p₁ == GeometrySet([
+    Rope(cart.([(0,1), (1,1)])),
+    Rope(cart.([(1.5,1), (prevfloat(2., 2),1)]))])
+  @test intersection(p₁, l₄) |> type === Intersecting # touching an interior corner (ends of 2 segments)
+  @test p₁ ∩ l₄ == l₄ ∩ p₁ == GeometrySet([Rope(cart.([(0,0.5), (1.5,0.5), (prevfloat(2.,2),0.5)]))])
+
+  @test intersection(p₂, l₁) |> type === Intersecting # touching 2 exterior corners
+  @test p₂ ∩ l₁ == l₁ ∩ p₂ == GeometrySet([Rope([cart(0,2)]), Rope([cart(2,2)])])
+  @test intersection(p₂, l₅) |> type === Intersecting # touching 1 exterior corner
+  @test p₂ ∩ l₅ == l₅ ∩ p₂ == GeometrySet([Rope(cart.([(0,2)])), Rope(cart.([(1.2,nextfloat(1.2)), (2,prevfloat(2/3))]))])
+
   # https://github.com/JuliaGeometry/Meshes.jl/issues/1218
   if T === Float64
     p1 = cart(387843.1300172474, 7.648008470021072e6)

@@ -205,3 +205,100 @@ function intersection(f, ray::Ray, tri::Triangle)
 end
 
 intersection(f, ray::Ray, p::Polygon) = intersection(f, GeometrySet([ray]), simplexify(p))
+
+function intersection(f, ray::Ray, poly::PolyArea)
+  segs = Iterators.flatten(segments.(rings(poly)))
+  ints = Intersection[]
+
+  for seg in segs
+    int = intersection(identity, seg, ray)
+    if type(int) !== NotIntersecting
+      push!(ints, int)
+    end
+  end
+  isempty(ints) && return @IT NotIntersecting nothing f
+
+  # delete duplicate intersections from end/begining of segments on either side of an
+  # overlapping segment. depending on ring orientation, the duplicate points in this
+  # specific case can be hidden from the simple de-dupping by the upcoming sorting.
+  # duplicate end/beginning without an overlapping segment in-between will still be adjacent
+  # after sorting, so don't need to be handled here
+  i = 1
+  while i < lastindex(ints)
+    int = ints[i]
+    if type(int) === EdgeTouching || type(int) === CornerTouching
+      if i+1 < lastindex(ints)
+        int1 = ints[i+1]
+        if type(int1) === Overlapping
+          if i+2 ≤ lastindex(ints)
+            int2 = ints[i+2]
+            if type(int2) === EdgeTouching || type(int) === CornerTouching
+              pt = get(int)
+              pt1_1, pt1_2 = (vertices(get(int1))...,)
+              pt2 = get(int2)
+
+              if pt ≈ pt1_1 && pt1_2 ≈ pt2
+                  deleteat!(ints, (i, i+2))
+                  continue
+              end
+            end
+          end
+        end
+      end
+    end
+    i += 1
+  end
+
+  # Flip segments as needed so the first vertex is closer to ray origin
+  uv = unormalize(ray.v)
+  for (i,int) in enumerate(ints)
+    if type(int) === Overlapping
+      v1, v2 = (vertices(get(int))...,)
+      if udot(to(v1), uv) > udot(to(v2), uv)
+        ints[i] = @IT Overlapping Segment(v2, v1) identity
+      end
+    end
+  end
+  sort!(ints; by=function(int)
+        pt = if type(int) === Overlapping
+          vertices(get(int))[1]
+        else
+          get(int)
+        end
+        udot(to(pt), uv)
+    end)
+
+
+  PTT = eltype(vertices(poly))
+  RT = Rope{manifold(poly),crs(poly),Vector{PTT}}
+  set = [RT(type(first(ints)) === Overlapping ? vertices(get(first(ints))) : [get(first(ints))])]
+
+  # Add the ray origin if it is inside of `poly` and not intersecting a poly edge (which
+  # would have already been handled)
+  if first(vertices(first(set))) ≉ ray.p && ray.p ∈ poly
+      pushfirst!(vertices(first(set)), ray.p)
+  end
+
+  for int in @view(ints[2:end])
+    pt_prev = last(last(set).vertices)
+    pt = type(int) === Overlapping ? first(vertices(get(int))) : get(int)
+    seg = Segment(pt_prev, pt)
+
+    if pt_prev ≈ pt || seg(0.5) ∈ poly
+      pt_prev ≈ pt || push!(last(set).vertices, pt)
+      if type(int) === Overlapping
+        push!(last(set).vertices, last(vertices(get(int))))
+      end
+    else
+      if type(int) === Overlapping
+        p2 = last(vertices(get(int)))
+        push!(set, RT([pt, p2]))
+      else
+        push!(set, RT([pt]))
+      end
+    end
+  end
+
+  return @IT Intersecting GeometrySet(set) f
+end
+

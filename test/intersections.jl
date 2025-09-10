@@ -319,6 +319,7 @@ end
   @test r₁ ∩ s₇ ≈ s₇ ∩ r₁ ≈ r₁(0)
 
   r₂ = Ray(cart(3, 2), vector(1, 1))
+  r₃ = Ray(cart(1, 1), vector(2, 0))
   s₈ = Segment(cart(4, 3), cart(5, 4)) # Overlapping
   s₉ = Segment(cart(2.5, 1.5), cart(3.3, 2.3)) # Overlapping s(1)
   s₁₀ = Segment(cart(3.6, 2.6), cart(2.6, 1.6)) # Overlapping s(0)
@@ -328,12 +329,15 @@ end
   s₁₄ = Segment(cart(3.2, 2.2), cart(3, 2)) # Overlapping s(1) = r(0)
   s₁₅ = Segment(cart(2, 1), cart(1.6, 0.6)) # No Intersection, colinear
   s₁₆ = Segment(cart(3, 1), cart(4, 2)) # No Intersection, parallel
+  s₁₇ = Segment(cart(2,1), cart(4,1))
   @test intersection(r₂, s₈) |> type == Overlapping # CASE 4
   @test r₂ ∩ s₈ === s₈ ∩ r₂ === s₈
   @test intersection(r₂, s₉) |> type == Overlapping # CASE 4
   @test r₂ ∩ s₉ == s₉ ∩ r₂ == Segment(r₂(0), s₉(1))
   @test intersection(r₂, s₁₀) |> type == Overlapping # CASE 4
   @test r₂ ∩ s₁₀ == s₁₀ ∩ r₂ == Segment(r₂(0), s₁₀(0))
+  @test intersection(r₃, s₁₇) |> type == Overlapping # CASE 4
+  @test r₃ ∩ s₁₇ == s₁₇ ∩ r₃ == s₁₇
   @test intersection(r₂, s₁₁) |> type == CornerTouching # CASE 3
   @test r₂ ∩ s₁₁ ≈ s₁₁ ∩ r₂ ≈ r₂(0)
   @test intersection(r₂, s₁₂) |> type == CornerTouching # CASE 3

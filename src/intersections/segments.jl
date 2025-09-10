@@ -43,7 +43,7 @@ function intersection(f, seg₁::Segment, seg₂::Segment)
   b₀ = a + 1 / l₁ * (b - a)
   d₀ = c + 1 / l₂ * (d - c)
 
-  # arc length parameters λ₁ ∈ [0, l₁], λ₂ ∈ [0, l₂]: 
+  # arc length parameters λ₁ ∈ [0, l₁], λ₂ ∈ [0, l₂]:
   λ₁, λ₂, r, rₐ = intersectparameters(a, b₀, c, d₀)
 
   if r ≠ rₐ # not in same plane or parallel
@@ -98,7 +98,7 @@ function intersection(f, seg₁::Segment, seg₂::Segment)
 end
 
 # The intersection type can be one of five types:
-# 
+#
 # 1. intersect at one inner point (Crossing -> Point)
 # 2. intersect at one end point of segment xor origin of ray (EdgeTouching -> Point)
 # 3. intersects at one end point of segment and origin of ray (CornerTouching -> Point)
@@ -110,9 +110,9 @@ function intersection(f, seg::Segment, ray::Ray)
   c, d = seg(0), seg(1)
 
   # normalize points to gain parameters λ₁, λ₂ corresponding to arc lengths
-  l₁ = ustrip(norm(b - a))
+  l₁ = ustrip(norm(ray.v))
   l₂ = ustrip(length(seg))
-  b₀ = a + 1 / l₁ * (b - a)
+  b₀ = a + 1 / l₁ * ray.v
   d₀ = c + 1 / l₂ * (d - c)
 
   λ₁, λ₂, r, rₐ = intersectparameters(a, b₀, c, d₀)
@@ -122,8 +122,10 @@ function intersection(f, seg::Segment, ray::Ray)
     return @IT NotIntersecting nothing f # CASE 5
   # collinear
   elseif r == rₐ == 1
-    rc = sum((c - a) ./ (b - a)) / Dim
-    rd = sum((d - a) ./ (b - a)) / Dim
+    # slightly perturb ray vector components from zero. This will only change a number within
+    # 1.999999999999999 times the floatmin
+    rc = sum((c - a) ./ (ray.v .+ eps(zero(lentype(a))))) / Dim
+    rd = sum((d - a) ./ (ray.v .+ eps(zero(lentype(a))))) / Dim
     rc = mayberound(rc, zero(rc))
     rd = mayberound(rd, zero(rd))
     if rc > 0 # c ∈ ray
@@ -331,7 +333,7 @@ function intersection(f, seg::Segment, tri::Triangle)
   return @IT Intersecting p f
 end
 
-# sorts four numbers using a sorting network 
+# sorts four numbers using a sorting network
 # and returns the 2nd and 3rd
 function _sort4vals(a, b, c, d)
   a > c && ((a, c) = (c, a))

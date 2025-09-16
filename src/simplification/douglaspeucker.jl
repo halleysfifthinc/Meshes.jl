@@ -30,22 +30,44 @@ end
 
 # simplify chain assuming it is open
 function _douglaspeucker(v::AbstractVector{P}, τ) where {P<:Point}
-  # find vertex with maximum distance to reference line
-  l = Line(first(v), last(v))
-  imax, dmax = 0, zero(lentype(P))
-  for i in 2:(length(v) - 1)
-    d = evaluate(Euclidean(), v[i], l)
-    if d > dmax
-      imax = i
-      dmax = d
+  n = length(v)
+
+  if n ≤ 2
+      return copy(v)
+  end
+
+  keep = BitSet()
+  push!(keep, 1)
+  push!(keep, n)
+
+  stack = Vector{Tuple{Int, Int}}()
+  push!(stack, (1, n))
+
+  while !isempty(stack)
+    start_idx, end_idx = pop!(stack)
+
+    # find vertex with maximum distance to reference line
+    l = Line(v[start_idx], v[end_idx])
+    imax, dmax = 0, zero(lentype(P))
+    for i in (start_idx + 1):(end_idx - 1)
+      d = evaluate(Euclidean(), v[i], l)
+      if d > dmax
+        imax = i
+        dmax = d
+      end
+    end
+
+    # if maximum distance exceeds tolerance, split segment
+    if dmax ≥ τ
+      push!(keep, imax)
+      # only push sub-chains if they are splittable (i.e. have a point between endpoints)
+      imax > start_idx+1 && push!(stack, (start_idx, imax))
+      imax < end_idx-1 && push!(stack, (imax, end_idx))
     end
   end
 
-  if dmax < τ
-    [first(v), last(v)]
-  else
-    v₁ = _douglaspeucker(v[begin:imax], τ)
-    v₂ = _douglaspeucker(v[imax:end], τ)
-    [v₁[begin:(end - 1)]; v₂]
-  end
+  # BitSet's are already sorted, so the indices will collect elements of `v` in the original
+  # order
+  return v[collect(keep)]
 end
+
